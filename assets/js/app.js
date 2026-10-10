@@ -33,7 +33,7 @@ function objToArr(obj) {
       ...todo,
       id: id,
     };
-  });
+  }).reverse();
 }
 
 // snackbar
