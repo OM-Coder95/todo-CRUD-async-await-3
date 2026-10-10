@@ -10,6 +10,10 @@ const todoContainer = document.getElementById("todoContainer");
 const addTodoBtn = document.getElementById("addTodoBtn");
 const updateTodoBtn = document.getElementById("updateTodoBtn");
 
+// spinner
+
+const spinner = document.getElementById("spinner");
+
 let BASE_URL = `https://todo-crud-async-await-generic-default-rtdb.firebaseio.com`;
 
 let TODO_URL = `${BASE_URL}/todo3.json`;
@@ -24,11 +28,35 @@ let state = {
 // Obj to Arr
 
 function objToArr(obj) {
-  for (const key in obj) {
-    obj[key].id = key;
-    state.todoArr.unshift(obj[key]);
+  state.todoArr = Object.entries(obj || {}).map(([id, todo]) => {
+    return {
+      ...todo,
+      id: id,
+    };
+  });
+}
+
+// snackbar
+
+function snackbar(msg, icon) {
+  return Swal.fire({
+    text: msg,
+    icon: icon,
+    timer: 1800,
+  });
+}
+
+// spinner
+
+function showSpinner(flag) {
+  if (flag) {
+    spinner.classList.remove("d-none");
+  } else {
+    spinner.classList.add("d-none");
   }
 }
+
+// Create
 
 async function onTodoAdd(event) {
   try {
@@ -40,6 +68,7 @@ async function onTodoAdd(event) {
       isCompleted: isCompleted.value === "yes" ? true : false,
     };
 
+    showSpinner(true);
     let res = await fetch(TODO_URL, {
       method: "POST",
       body: JSON.stringify(newTodo),
@@ -51,18 +80,19 @@ async function onTodoAdd(event) {
 
     let data = await res.json();
 
-    cl(data);
-
     newTodo.id = data.name;
 
     state.todoArr.unshift(newTodo);
 
     createLI(newTodo);
 
+    snackbar("Todo Created successfully!", "success");
+
     todoForm.reset();
   } catch (err) {
-    cl(err.message);
+    snackbar(err.message, "error");
   } finally {
+    showSpinner();
   }
 }
 
@@ -86,14 +116,13 @@ function createLI(newTodo) {
                                         <button onclick="event.stopPropagation(); onTodoEdit(this)"
                                             class="btn btn-sm btn-primary">Edit</button>
                                         <button onclick="event.stopPropagation(); onTodoRemove(this)"
-                                            class="btn btn-sm btn-danger">Remove</button>
+                                            class="btn btn-sm btn-danger deleteBtn">Remove</button>
                                     </div>
                                 </div>
 
                                 <div class="collapse">
                                     <div class="card-body">
-                                        Some placeholder content for the first accordion panel. This panel is shown
-                                        by default, thanks to the <code>.show</code> class.
+                                        ${newTodo.description}
                                     </div>
                                 </div>
     `;
@@ -105,6 +134,7 @@ function createLI(newTodo) {
 
 async function onShowOnUI() {
   try {
+    showSpinner(true);
     let res = await fetch(TODO_URL, {
       method: "GET",
       body: null,
@@ -113,17 +143,14 @@ async function onShowOnUI() {
         Authorization: "JWT TOKEN",
       },
     });
+
     let data = await res.json();
-
-    cl(data);
-
     objToArr(data);
-
-    cl(state.todoArr);
-
     rendering(state.todoArr);
   } catch (err) {
+    snackbar(err.message, "error");
   } finally {
+    showSpinner();
   }
 }
 
@@ -148,14 +175,13 @@ function rendering(arr) {
                                         <button onclick="event.stopPropagation(); onTodoEdit(this)"
                                             class="btn btn-sm btn-primary">Edit</button>
                                         <button onclick="event.stopPropagation(); onTodoRemove(this)"
-                                            class="btn btn-sm btn-danger">Remove</button>
+                                            class="btn btn-sm btn-danger deleteBtn">Remove</button>
                                     </div>
                                 </div>
 
                                 <div class="collapse">
                                     <div class="card-body">
-                                        Some placeholder content for the first accordion panel. This panel is shown
-                                        by default, thanks to the <code>.show</code> class.
+                                        ${ele.description}
                                     </div>
                                 </div>
 
@@ -170,8 +196,13 @@ function rendering(arr) {
 
 function onTodoEdit(ele) {
   let editId = ele.closest("li").id;
-
   state.editId = editId;
+
+  let allDeleteBtn = document.querySelectorAll("#todoContainer .deleteBtn");
+  allDeleteBtn.forEach((ele) => (ele.disabled = false));
+
+  let deleteBtn = (ele.closest("li").querySelector(".deleteBtn").disabled =
+    true);
 
   let findObj = state.todoArr.find((ele) => ele.id === editId);
 
@@ -188,6 +219,11 @@ function onTodoEdit(ele) {
 async function onTodoUpdate() {
   try {
     let updateId = state.editId;
+
+    let deleteBtn = (document
+      .getElementById(updateId)
+      .querySelector(".deleteBtn").disabled = false);
+
     let updatedObj = {
       id: updateId,
       todoItem: todoName.value.trim(),
@@ -197,6 +233,7 @@ async function onTodoUpdate() {
 
     let UPDTAED_URL = `${BASE_URL}/todo3/${updateId}.json`;
 
+    showSpinner(true);
     let res = await fetch(UPDTAED_URL, {
       method: "PATCH",
       body: JSON.stringify(updatedObj),
@@ -207,7 +244,6 @@ async function onTodoUpdate() {
     });
 
     let data = await res.json();
-    cl(data);
 
     let getIndex = state.todoArr.findIndex((ele) => ele.id === updateId);
 
@@ -215,13 +251,17 @@ async function onTodoUpdate() {
 
     updateUI(data);
 
+    snackbar("Todo Updated successfully!", "success");
+
     todoForm.reset();
 
     updateTodoBtn.classList.add("d-none");
     addTodoBtn.classList.remove("d-none");
     state.editId = null;
-  } catch {
+  } catch (err) {
+    snackbar(err.message, "error");
   } finally {
+    showSpinner();
   }
 }
 
@@ -241,14 +281,13 @@ function updateUI(data) {
                                         <button onclick="event.stopPropagation(); onTodoEdit(this)"
                                             class="btn btn-sm btn-primary">Edit</button>
                                         <button onclick="event.stopPropagation(); onTodoRemove(this)"
-                                            class="btn btn-sm btn-danger">Remove</button>
+                                            class="btn btn-sm btn-danger deleteBtn">Remove</button>
                                     </div>
                                 </div>
 
                                 <div class="collapse">
                                     <div class="card-body">
-                                        Some placeholder content for the first accordion panel. This panel is shown
-                                        by default, thanks to the <code>.show</code> class.
+                                        ${data.description}
                                     </div>
                                 </div>
   `;
@@ -272,6 +311,8 @@ async function onTodoRemove(ele) {
 
       let REMOVE_URL = `${BASE_URL}/todo3/${removeId}.json`;
 
+      showSpinner(true);
+
       let res = await fetch(REMOVE_URL, {
         method: "DELETE",
         body: null,
@@ -282,17 +323,15 @@ async function onTodoRemove(ele) {
       });
 
       let data = await res.json();
-
-      cl(data);
-
       let getIndex = state.todoArr.findIndex((ele) => ele.id === removeId);
-
       state.todoArr.splice(getIndex, 1);
 
       ele.closest("li").remove();
+      snackbar("Todo Deleted successfully!", "success");
     } catch (err) {
-      cl(err.message);
+      snackbar(err.message, "error");
     } finally {
+      showSpinner();
     }
   }
 }
@@ -316,6 +355,8 @@ async function onCheck(ele) {
     };
     let UPDATE_URL = `${BASE_URL}/todo3/${todoId}.json`;
 
+    showSpinner(true);
+
     let res = await fetch(UPDATE_URL, {
       method: "PATCH",
       body: JSON.stringify(updatedObj),
@@ -326,16 +367,13 @@ async function onCheck(ele) {
     });
 
     let data = await res.json();
-
-    cl(data);
-
-    let getIndex = state.todoArr.findIndex(ele => ele.id === todoId);
-
+    let getIndex = state.todoArr.findIndex((ele) => ele.id === todoId);
     state.todoArr[getIndex].isCompleted = ele.checked;
-
-    cl(state.todoArr[getIndex]);
+    snackbar("Todo status updated successfully!", "success");
   } catch (err) {
+    snackbar(err.message, "error");
   } finally {
+    showSpinner();
   }
 }
 
