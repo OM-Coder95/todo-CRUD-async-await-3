@@ -28,12 +28,14 @@ let state = {
 // Obj to Arr
 
 function objToArr(obj) {
-  state.todoArr = Object.entries(obj || {}).map(([id, todo]) => {
-    return {
-      ...todo,
-      id: id,
-    };
-  }).reverse();
+  state.todoArr = Object.entries(obj || {})
+    .map(([id, todo]) => {
+      return {
+        ...todo,
+        id: id,
+      };
+    })
+    .reverse();
 }
 
 // snackbar
@@ -339,9 +341,19 @@ async function onTodoRemove(ele) {
 // toggleDescription
 
 function toggleDescription(ele) {
-  let description = ele.nextElementSibling;
+  let currentDescription = ele.nextElementSibling;
 
-  description.classList.toggle("show");
+  let isOpen = currentDescription.classList.contains("show");
+
+  let allDescription = ele.closest("#todoContainer").querySelectorAll(".collapse");
+
+  
+
+  allDescription.forEach((des) => des.classList.remove("show"));
+
+  if (!isOpen) {
+      currentDescription.classList.add("show");
+  }
 }
 
 // onCheck
